@@ -1,0 +1,140 @@
+<!DOCTYPE HTML> <!-- Declare HTML5 doctype -->
+<head>
+    <title>Micello Developer Example</title>    
+    
+    <meta  name="viewport"  content="initial-scale=1.0,  user-scalable=no"  />
+    
+    <!-- Load micellomap.js from micello.com -->
+    <script  type="text/javascript"  src="http://maps.micello.com/webmap/v0/micellomap.js"></script>
+    <script  type="text/javascript"  src="foursquare_stuff.js"></script>
+    <!-- Style the map container -- this is a full screen example -->
+    <style type='text/css'>
+        html {width:100%; height:100%; margin:0px;}
+        body {width:100%; height:100%; margin:0px;}
+        #mapElement { /* STYLE YOUR MAP */
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    
+    <script type='text/javascript'>
+        var apikey = "b6b73416-8094-48f9-80bd-35ad11cee059";
+        var id;
+        var random;
+        var store;
+        var info;
+        var details;
+        var mapControl;
+        var mapDataObject;
+        var mapCanvas;
+        var users;
+        var micelloName;
+        var area;
+        var i;
+        micello.maps.init (apikey, mapInit);
+        function  mapInit() {
+            mapControl = new micello.maps.MapControl('mapElement');
+            mapCanvas = mapControl.getMapCanvas(); // get the map canvas
+            mapDataObject = mapControl.getMapData();
+            mapCanvas.setThemeFamily("Standard");            
+            mapControl.onMapClick = onMapClick;
+            mapDataObject.mapChanged = onMapChanged;
+            mapDataObject.loadCommunity(15);
+            
+        }
+        function onMapChanged(e) { //gets all the information by running foursquare on load
+            if(e.comLoad) {
+                random = mapDataObject.mxyToLatLon(mapDataObject.currentDrawing.h/2, mapDataObject.currentDrawing.w/2);
+                getInfo();
+
+            }
+        }
+        function onMapClick (mx, my, clicked) { //when clicked, will check id and see which store is clicked on to return correct information
+            if (clicked) {
+                area = mapDataObject.mxyToLatLon(mx, my);
+                micelloName = clicked.nm;
+                id = clicked.id;
+                if(clicked.nm) {
+                    for(i = 0; i < store.length; i++) {
+                        //console.log(store[i].indexOf(micelloName));
+                        //console.log(micelloName.indexOf(store[i]));
+                        if( store[i].indexOf(micelloName)  > 0 || micelloName.indexOf(store[i]) == 0 || store[i].indexOf(micelloName) == 0 || micelloName.indexOf(store[i]) > 0 || store[i] === micelloName) {
+                            console.log(store[i]);
+                            addMenuItem(clicked);  // whenever an item is clicked it generated popup window
+                            return;
+                        }
+                    }
+                    addMenuItem(clicked);
+                }      
+            }
+            else {
+                mapControl.hideInfoWindow();
+            }
+        }
+        /*
+        ** Add custom menu link to popup, Here in this example its at 2nd place.
+        */
+        function addMenuItem(clicked){
+            var menuItems = new Array();
+            level = mapDataObject.getCurrentLevel();
+            if (mapControl.popupFlags && micello.maps.MapControl.SHOW_INFO) {
+                mapControl.loadInfoCmd(clicked, menuItems);
+            }
+
+            if (mapControl.popupFlags && micello.maps.MapControl.SHOW_INSIDE) {
+                mapControl.loadInsideCmd(clicked, menuItems);
+            }
+            if (mapControl.popupFlags && micello.maps.MapControl.SHOW_NAV) {
+                mapControl.loadNavCmd(clicked, level.id, menuItems);
+            }
+            if (mapControl.popupFlags) { //custom menu item
+                AddToMenu(clicked, level.id, menuItems);
+            }
+            if (mapControl.popupFlags && micello.maps.MapControl.SHOW_REPORT) {
+                mapControl.loadInputCmd(clicked, menuItems);
+            }
+            mapControl.showPopupMenu(clicked, clicked.nm, menuItems);
+        }
+        /*
+        ** Create element in menu and add function to that.
+        */
+        function AddToMenu (clicked, levelId, menuItems) {
+            if (clicked.id) {
+                var menuItem = {
+                    name : "Total Check-Ins",
+                    func : function() {
+                        //console.log("Custom menu clicked !!");
+                        mapControl.hideInfoWindow();
+                        html = "<h3>Total Check-ins: " + info[i] + "<h3>\n User Check-ins: " + users[i] + "</h3>";
+                        var geomId = id;
+                        mapControl.showInfoWindow(mapDataObject.geomMap[geomId].g, html);
+                    }
+                };
+                menuItems.push(menuItem);
+            }
+        };
+        function getInfo() {
+            var data = dw_encodeVars( {Latitude: random[0], Longitude: random[1]} );
+            var callback = {
+                success: function(req) {
+                    console.log("Success!");
+                    details = getData();
+                    store = details[0];
+                    info = details[1];
+                    users = details[2];
+                    console.log(store);
+                },
+                failure: function(req) {
+                    console.log("Failure");
+                }
+            }
+            dw_makeXHRRequest('foursquare_call.php?' + data, callback);
+
+        }
+        
+    </script>
+</head>
+<body>
+<div id='mapElement'></div>
+</body>
+</HTML>
